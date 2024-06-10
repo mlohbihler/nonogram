@@ -1,0 +1,15 @@
+rubocop:
+  config_file: .rubocop.yml
+  version: 0.64.0
+
+scss:
+  enabled: false
+
+jshint:
+  enabled: false
+
+eslint:
+  enabled: false
+  version: 5.7.0
+  config_file: .eslintrc.json
+  ignore_file: .eslintignore

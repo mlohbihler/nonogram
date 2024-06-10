@@ -1,0 +1,272 @@
+AllCops:
+  DisplayCopNames: true
+  DisplayStyleGuide: true
+  ExtraDetails: false
+  TargetRubyVersion: 2.6
+  NewCops: enable
+
+require:
+  - rubocop-performance
+  - rubocop-rails
+
+Layout/HashAlignment:
+  EnforcedColonStyle: key
+  EnforcedLastArgumentHashStyle: always_inspect
+
+Layout/ArgumentAlignment:
+  EnforcedStyle: with_fixed_indentation
+
+Layout/BlockAlignment:
+  EnforcedStyleAlignWith: start_of_block
+
+Style/MethodCallWithArgsParentheses:
+  Enabled: true
+  AllowedMethods: [puts, raise, render, require]
+  Exclude:
+    - !ruby/regexp /_spec\.rb$/
+    - spec/support/matchers/*
+    - db/**/*
+
+Style/NumericLiterals:
+  Enabled: true
+  Exclude:
+    - !ruby/regexp /_spec\.rb$/
+
+Layout/ExtraSpacing:
+  AllowForAlignment: false
+
+Layout/FirstArrayElementLineBreak:
+  Enabled: true
+
+Layout/FirstHashElementLineBreak:
+  Enabled: true
+
+Layout/FirstMethodArgumentLineBreak:
+  Enabled: true
+
+Layout/FirstArgumentIndentation:
+  EnforcedStyle: consistent
+
+Layout/FirstArrayElementIndentation:
+  Enabled: true
+  EnforcedStyle: consistent
+
+Layout/FirstHashElementIndentation:
+  EnforcedStyle: consistent
+
+Layout/FirstParameterIndentation:
+  EnforcedStyle: consistent
+
+Layout/ParameterAlignment:
+  EnforcedStyle: with_fixed_indentation
+
+Layout/MultilineArrayLineBreaks:
+  Enabled: true
+
+Layout/MultilineHashKeyLineBreaks:
+  Enabled: true
+
+Layout/MultilineMethodArgumentLineBreaks:
+  Enabled: true
+
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: indented
+
+Layout/MultilineOperationIndentation:
+  EnforcedStyle: indented
+
+Lint/AmbiguousBlockAssociation:
+  Enabled: true
+  # RSpec has a canonical syntax that violates this rule.
+  Exclude:
+    - !ruby/regexp /_spec\.rb$/
+
+Lint/HeredocMethodCallPosition:
+  Enabled: true
+
+Layout/LineLength:
+  Max: 100
+  AutoCorrect: true
+  Exclude:
+    - spec/**/*_spec.rb
+    - db/**/*
+  AllowedPatterns:
+    - ^#!
+    - \"$ # Don't enforce on long strings.
+    - \",$ # Don't enforce on long strings in hashes.
+    - \"\.freeze$ # Don't enforce on long strings that are frozen.
+
+Layout/EmptyLinesAroundAttributeAccessor:
+  Enabled: true
+
+Layout/SpaceAroundMethodCallOperator:
+  Enabled: true
+
+Lint/BinaryOperatorWithIdenticalOperands:
+  Enabled: true
+
+Style/TrailingCommaInArrayLiteral:
+  EnforcedStyleForMultiline: comma
+
+Style/TrailingCommaInHashLiteral:
+  EnforcedStyleForMultiline: comma
+
+Style/TrailingUnderscoreVariable:
+  Enabled: false
+
+Style/NegatedIf:
+  Enabled: false
+
+Style/GlobalVars:
+  Enabled: false
+
+Style/IfUnlessModifier:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
+
+Style/SymbolArray:
+  EnforcedStyle: brackets
+
+Style/ClassVars:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  EnforcedStyle: never
+
+Style/MultilineBlockChain:
+  Enabled: false
+
+Style/NumericLiteralPrefix:
+  EnforcedOctalStyle: zero_only
+
+Style/WordArray:
+  EnforcedStyle: brackets
+
+Style/BlockComments:
+  Enabled: false
+
+Metrics/MethodLength:
+  Enabled: false
+
+Metrics/ClassLength:
+  Enabled: false
+
+Metrics/PerceivedComplexity:
+  Enabled: false
+
+Metrics/CyclomaticComplexity:
+  Enabled: false
+
+Metrics/AbcSize:
+  Enabled: false
+
+Metrics/ParameterLists:
+  Max: 10
+
+Metrics/BlockLength:
+  Enabled: false
+
+Metrics/BlockNesting:
+  Max: 4
+
+# Trailing dot makes it so code can be copied and pasted into the Rails console and run
+# interactively easily.
+Layout/DotPosition:
+  EnforcedStyle: trailing
+
+Naming/VariableNumber:
+  EnforcedStyle: snake_case
+
+Rails/UnknownEnv:
+  Environments:
+    - production
+    - staging
+    - development
+    - test
+
+Rails/DynamicFindBy:
+  Enabled: false
+
+Rails/CreateTableWithTimestamps:
+  Enabled: false
+
+Rails/SkipsModelValidations:
+  Enabled: false
+
+Rails/HasManyOrHasOneDependent:
+  Enabled: false
+
+Rails/SquishedSQLHeredocs:
+  Enabled: false
+
+Rails/ReversibleMigration:
+  Enabled: false
+
+Metrics/ModuleLength:
+  Enabled: false
+
+# This rule appears to be broken for begin/rescue/end statments inside a block for Ruby < 2.5.
+# https://github.com/rubocop-hq/rubocop/issues/6239
+Style/RedundantBegin:
+  Enabled: false
+
+Style/NumericPredicate:
+  Enabled: false
+
+Style/RegexpLiteral:
+  EnforcedStyle: slashes
+
+Style/AsciiComments:
+  Enabled: false
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Layout/EndAlignment:
+  EnforcedStyleAlignWith: variable
+  AutoCorrect: true
+
+Naming/MethodParameterName:
+  Enabled: false
+
+Style/KeywordParametersOrder:
+  Enabled: true
+
+Style/EmptyMethod:
+  Enabled: false
+
+Style/OptionalBooleanParameter:
+  Exclude:
+    - app/jobs/* # We can't use named params for jobs.
+
+# Legacy method names like `has_sp_releases?` would be better named `sp_releases?` but we treat
+# this as a warning instead of an error.
+Naming/PredicateName:
+  Severity: warning
+
+# Legacy method names like `get_followers` exist.
+Naming/AccessorMethodName:
+  Severity: warning
+
+# Using `puts` should be treated as a warning instead of an error.
+Rails/Output:
+  Severity: warning
+  Exclude:
+    - config/deploy.rb # This isn't a Rails file, so it shouldn't have to follow Rails rules.
+
+# We have block argument names shadowing variables in an outer scope all the time, so make
+# this a warning.
+Lint/ShadowingOuterLocalVariable:
+  Severity: warning
+
+# There are legitimate cases where a column can be not null but have no natural default value.
+Rails/NotNullColumn:
+  Enabled: false
+
+Rails/ContentTag:
+  Enabled: false
+
+Style/GuardClause:
+  Enabled: false

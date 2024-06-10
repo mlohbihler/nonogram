@@ -1,0 +1,53 @@
+[
+  [""],
+  [
+    "2b,3b,2b",
+    "3b,1b,4b",
+    "1b,4r,3b,2b,1b",
+    "1b,7r,8b",
+    "1b,7r,5b,1b",
+    "1b,8r,6b",
+    "1b,3r,2b,3r,8b",
+    "1b,4r,2b,3r,3b,3b",
+    "1b,9r,3b,2r,1b",
+    "9r,1b,7r,1b",
+    "8r,1b,8r,2b",
+    "2b,1r,2b,3r,1b,9r",
+    "1b,1r,2b,2r,1b,4r,2b,3r,1b",
+    "1b,1a,4r,1b,5r,2b,3r,2b",
+    "2a,2r,1b,11r,1b",
+    "2a,1r,1b,3r,2b,6r,1b,2b",
+    "1a,4r,2b,5r,1b",
+    "2a,7r,2b",
+    "4a,1b,2r,2b",
+    "3b"
+  ],
+  {
+    " ": "white",
+    "b": "black",
+    "r": "webmaroon",
+    "a": "cyan"
+  },
+  [
+    "    bb   bbb    bb  ",
+    "     bbb b   bbbb   ",
+    "       brrrrbbb bb b",
+    "    brrrrrrrbbbbbbbb",
+    "   brrrrrrr bbbbb b ",
+    "  brrrrrrrr  bbbbbb ",
+    "  brrrbbrrrbbbbbbbb ",
+    " brrrrbbrrrbbb bbb  ",
+    " brrrrrrrrrbbb  rr b",
+    " rrrrrrrrrbrrrrrrr b",
+    " rrrrrrrrbrrrrrrrrbb",
+    "bbrbbrrrbrrrrrrrrr  ",
+    "b rbbrrbrrrrbbrrrb  ",
+    "barrrrbrrrrrbbrrrbb ",
+    " aarrbrrrrrrrrrrr b ",
+    " aarbrrrbbrrrrrrb bb",
+    " a  rrrrbbrrrrrb    ",
+    "    aarrrrrrrbb     ",
+    "   aaaa brrbb       ",
+    "      bbb           "
+  ]
+]
