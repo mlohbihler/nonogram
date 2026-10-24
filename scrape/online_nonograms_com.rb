@@ -10,8 +10,10 @@ require "zlib"
 # Puzzle pages (/en/id/<id>) embed the puzzle as a field "p" in the Next.js flight payload. The
 # picross engine (engines/picross/assets/index-*.js, function `rs`) decodes it by swapping the
 # characters 2->1, a->2, 1->a, then base64-decoding and inflating raw DEFLATE. The result is JSON
-# with "colors" ({"<code>" => "#rrggbb"}) and "move", the solution indexed as move[x][y] with
-# EMPTY for blank cells.
+# with "colors" ({"<code>" => "#rrggbb"}), "move", the solution indexed as move[x][y] with EMPTY
+# for blank cells, and "en_title"/"ru_title".
+#
+# Files are saved as [top clues, left clues, colours, solution rows, title].
 class OnlineNonogramsCom
   BASE_URL = "https://onlinenonograms.com".freeze
   EMPTY = 9
@@ -32,8 +34,9 @@ class OnlineNonogramsCom
     colours[" "] = "#ffffff"
 
     path = "puzzles/online_nonograms_com/#{id}.json"
-    File.write(path, JSON.pretty_generate([cols.map { clues(_1) }, rows.map { clues(_1) }, colours, rows]))
-    puts "#{path}: #{move.length}x#{rows.length}, #{colours.length - 1} colour(s), #{data['en_title']}"
+    title = [data["en_title"], data["ru_title"]].find { !_1.to_s.empty? }
+    File.write(path, JSON.pretty_generate([cols.map { clues(_1) }, rows.map { clues(_1) }, colours, rows, title]))
+    puts "#{path}: #{move.length}x#{rows.length}, #{colours.length - 1} colour(s), #{title}"
   end
 
   def self.flight_payload(html)
