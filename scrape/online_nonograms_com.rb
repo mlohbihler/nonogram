@@ -1,146 +1,71 @@
+require "base64"
 require "faraday"
-require "nokogiri"
-require "pry"
-require "pry-remote"
-require "pry-nav"
+require "json"
+require "zlib"
 
-# https://onlinenonograms.com/17465
+# Downloads puzzles from https://onlinenonograms.com into the local puzzle format.
+#
+# Usage: ruby scrape/online_nonograms_com.rb <id> [<id> ...]
+#
+# Puzzle pages (/en/id/<id>) embed the puzzle as a field "p" in the Next.js flight payload. The
+# picross engine (engines/picross/assets/index-*.js, function `rs`) decodes it by swapping the
+# characters 2->1, a->2, 1->a, then base64-decoding and inflating raw DEFLATE. The result is JSON
+# with "colors" ({"<code>" => "#rrggbb"}) and "move", the solution indexed as move[x][y] with
+# EMPTY for blank cells.
 class OnlineNonogramsCom
+  BASE_URL = "https://onlinenonograms.com".freeze
+  EMPTY = 9
   CODES = ("a".."z").to_a.freeze
 
-  def self.fetch_ids
-    response = Faraday.get(
-      "https://onlinenonograms.com/index.php",
-      {
-        place: "catalog",
-        kat: 0,
-        color: "",
-        size: "smart",
-        star: "",
-        filtr: "all",
-        sort: "sortstard",
-        noset: 2,
-        page: 1,
-      }
-    )
-    doc = Nokogiri::HTML(response.body)
-    doc.css(".catitem > a").map { _1.attr("href").to_i }
-  end
-
   def self.fetch(id)
-    url = "https://onlinenonograms.com/#{id}"
-    response = Faraday.get(url)
-    doc = Nokogiri::HTML(response.body)
+    html = Faraday.get("#{BASE_URL}/en/id/#{id}").body
+    data = decode(puzzle_field(flight_payload(html), id))
 
-    colours = doc.css("#maincolors .color_button").
-      select { _1.attr("abbr") }.
-      map.with_index do |button, i|
-        {
-          abbr: button.attr("abbr"),
-          colour: parse_styles(button)["background-color"],
-          code: CODES[i],
-        }
-      end
-    colour_code_lookup = colours.to_h { [_1[:colour], _1[:code]] }
-    colours << { code: " ", colour: "#ffffff" }
-
-    top_clue_rows = doc.css("#cross_top tr")
-    column_count = top_clue_rows.first.children.length
-    top_clues = (0...column_count).map { [] }
-    top_clue_rows.each do |row|
-      row.children.each_with_index do |e, i|
-        next if e.content.empty?
-
-        count = e.content.to_i
-        colour = parse_styles(e)["background-color"] || colour_code_lookup.keys.first
-        code = colour_code_lookup[colour]
-        top_clues[i] << "#{count}#{code}" if code
-      end
+    move = data["move"]
+    colour_codes = data["colors"].keys.sort_by(&:to_i).each_with_index.to_h { |k, i| [k.to_i, CODES[i]] }
+    rows = (0...move.first.length).map do |y|
+      move.map { |column| column[y] == EMPTY ? " " : colour_codes.fetch(column[y]) }.join
     end
-    top_clues = top_clues.map { _1.join(",") }
+    cols = (0...move.length).map { |x| rows.map { _1[x] }.join }
 
-    left_clue_rows = doc.css("#cross_left tr")
-    left_clues = left_clue_rows.map do |row|
-      row.children.map do |e|
-        next if e.content.empty?
+    colours = data["colors"].to_h { |k, hex| [colour_codes.fetch(k.to_i), hex] }
+    colours[" "] = "#ffffff"
 
-        count = e.content.to_i
-        colour = parse_styles(e)["background-color"] || colour_code_lookup.keys.first
-        code = colour_code_lookup[colour]
-        "#{count}#{code}" if code
-      end.compact.join(",")
-    end
-
-    File.write(
-      "puzzles/online_nonograms_com/#{id}.json",
-      JSON.pretty_generate(
-        [
-          top_clues,
-          left_clues,
-          colours.to_h { [_1[:code], _1[:colour]] },
-        ]
-      )
-    )
+    path = "puzzles/online_nonograms_com/#{id}.json"
+    File.write(path, JSON.pretty_generate([cols.map { clues(_1) }, rows.map { clues(_1) }, colours, rows]))
+    puts "#{path}: #{move.length}x#{rows.length}, #{colours.length - 1} colour(s), #{data['en_title']}"
   end
 
-  def self.parse_styles(ele)
-    style = ele.attr("style")
-    return {} if style.nil?
-
-    style.split(";").reject { _1.strip.empty? }.to_h do |option|
-      option.split(":").map(&:strip)
-    end
+  def self.flight_payload(html)
+    html.scan(/self\.__next_f\.push\(\[1,(".*?")\]\)<\/script>/m).map { JSON.parse(_1.first) }.join
   end
 
-  # puts fetch_ids
-  fetch(16624)
+  # The puzzle's "p" is either inline or a "$<ref>" to a text row "<ref>:T<hex byte length>,<data>".
+  def self.puzzle_field(payload, id)
+    p = payload[/"id":#{id},"sx":\d+,"sy":\d+,"p":"([^"]*)"/, 1]
+    raise "Puzzle #{id} not found in page" if p.nil?
+    return p unless p.start_with?("$")
 
-  # fetch(19268)
-  # fetch(19262)
-  # fetch(19267)
-  # fetch(19259)
-  # fetch(19269)
-  # fetch(19266)
-  # fetch(19260)
-  # fetch(15983)
-  # fetch(16061)
-  # fetch(17201)
-  # fetch(15335)
-  # fetch(16877)
-  # fetch(17185)
-  # fetch(15968)
-  # fetch(16896)
-  # fetch(15749)
-  # fetch(15624)
-  # fetch(15698)
-  # fetch(16717)
-  # fetch(15945)
-  # fetch(16789)
-  # fetch(17364)
-  # fetch(15322)
-  # fetch(17193)
-  # fetch(15281)
-  # fetch(16574)
-  # fetch(16619)
-  # fetch(17098)
-  # fetch(17698)
-  # fetch(16757)
-  # fetch(17291)
-  # fetch(16577)
-  # fetch(15399)
-  # fetch(16733)
-  # fetch(16763)
-  # fetch(15756)
-  # fetch(15123)
-  # fetch(16647)
-  # fetch(15998)
-  # fetch(15642)
-  # fetch(15966)
-  # fetch(17596)
-  # fetch(15639)
-  # fetch(17081)
-  # fetch(17350)
-  # fetch(17446)
-  # fetch(16585)
-  # fetch(17289)
+    ref = p.delete_prefix("$")
+    match = payload.match(/^#{ref}:T(\h+),/)
+    raise "Puzzle data row #{ref} not found" if match.nil?
+
+    payload.byteslice(match.byteoffset(0).last, match[1].to_i(16))
+  end
+
+  def self.decode(p)
+    raw = Base64.decode64(p.tr("21a", "1a2"))
+    JSON.parse(Zlib::Inflate.new(-Zlib::MAX_WBITS).inflate(raw))
+  end
+
+  def self.clues(line)
+    line.chars.chunk_while { _1 == _2 }.reject { _1.first == " " }.map { "#{_1.length}#{_1.first}" }.join(",")
+  end
+end
+
+if __FILE__ == $PROGRAM_NAME
+  ARGV.each_with_index do |id, i|
+    sleep 1 if i > 0 # The site's robots.txt asks for a 1 second crawl delay.
+    OnlineNonogramsCom.fetch(id)
+  end
 end
