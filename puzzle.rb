@@ -11,10 +11,15 @@ class Puzzle
     new(*data)
   end
 
-  def initialize(top_clue_sets, left_clue_sets, colour_definitions, solution = nil)
+  attr_reader :title
+
+  def initialize(top_clue_sets, left_clue_sets, colour_definitions, solution = nil, title = nil)
+    @title = title
     @top_clue_sets = top_clue_sets.map { |cs| ClueSet.new(cs) }
     @left_clue_sets = left_clue_sets.map { |cs| ClueSet.new(cs) }
-    @colour_definitions = colour_definitions.transform_keys(&:to_sym).transform_values(&:to_sym)
+    # Rainbow takes colour names as symbols, but hex colours ("#rrggbb") as strings.
+    @colour_definitions = colour_definitions.transform_keys(&:to_sym).
+      transform_values { _1.start_with?("#") ? _1 : _1.to_sym }
     @board = Board.new(@left_clue_sets.length, @top_clue_sets.length, parse_solution(solution))
     @board.init_colour_limits(@top_clue_sets, @left_clue_sets)
 

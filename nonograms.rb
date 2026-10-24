@@ -1,6 +1,5 @@
 require "json"
 require "pry"
-# require "pry-byebug"
 require "rainbow"
 
 require "./board"
@@ -10,26 +9,38 @@ require "./clue_set"
 require "./clue_set_view"
 require "./puzzle"
 
-start = Time.now.utc
+# Solves a puzzle and draws the result.
+#
+# Usage: bundle exec ruby --yjit nonograms.rb <puzzle> [--colour] [--rotate]
+#
+# <puzzle> is a name under puzzles/ without .json (e.g. online_nonograms_com/111636), or a path to
+# the puzzle file. --colour draws the solution in its colours, --rotate draws it turned sideways.
+class Nonograms
+  USAGE = "Usage: bundle exec ruby --yjit nonograms.rb <puzzle> [--colour] [--rotate]".freeze
 
-# puzzle = Puzzle.from_file("ladybug.20x20")
-# puzzle = Puzzle.from_file("pumpkins.45x35")
-# puzzle = Puzzle.from_file("hare.30x35")
-puzzle = Puzzle.from_file("paris.80x80")
-# puzzle = Puzzle.from_file("online_nonograms_com/17465")
-# puzzle = Puzzle.from_file("online_nonograms_com/19268")
-# puzzle = Puzzle.from_file("online_nonograms_com/19262")
-# puzzle = Puzzle.from_file("online_nonograms_com/19267")
-# puzzle = Puzzle.from_file("online_nonograms_com/19259")
-# puzzle = Puzzle.from_file("online_nonograms_com/16624")
+  def self.run(argv)
+    names = argv.reject { _1.start_with?("--") }
+    abort USAGE unless names.one?
 
-puzzle.solve
-# puzzle.draw(rotate: false)
-puzzle.draw(colour: false)
-result = puzzle.solved? ? Rainbow(" ### Solved").green : Rainbow("### Not solved").red
-puts "#{result} in #{Time.now.utc - start}s"
-puts
+    new(names.first).solve(colour: argv.include?("--colour"), rotate: argv.include?("--rotate"))
+  end
 
-# https://en.wikipedia.org/wiki/X11_color_names
+  def initialize(puzzle)
+    @name = puzzle.delete_prefix("puzzles/").delete_suffix(".json")
+  end
 
-# TODO: check ranges for lengths that match the clues and fill
+  def solve(colour: false, rotate: false)
+    start = Time.now.utc
+    puzzle = Puzzle.from_file(@name)
+    puzzle.solve
+    seconds = Time.now.utc - start
+
+    puzzle.draw(colour: colour, rotate: rotate)
+    result = puzzle.solved? ? Rainbow("### Solved").green : Rainbow("### Not solved").red
+    puts "#{result} #{@name}#{" (#{puzzle.title})" if puzzle.title} in #{seconds}s"
+    puts
+    puzzle.solved?
+  end
+end
+
+exit(Nonograms.run(ARGV) ? 0 : 1) if __FILE__ == $PROGRAM_NAME
