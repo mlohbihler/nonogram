@@ -150,7 +150,7 @@ class ClueSetView
             (
               (range.first > 0 && board_view[range.first - 1] == clue.colour) ||
               (
-                range.first + clue.count < board_view.length - 1 &&
+                range.first + clue.count < board_view.length &&
                 board_view[range.first + clue.count] == clue.colour
               )
             )
@@ -158,7 +158,7 @@ class ClueSetView
         end
         while range.size >= clue.count &&
             (
-              (range.last < board_view.length - 1 && board_view[range.last] == clue.colour) ||
+              (range.last < board_view.length && board_view[range.last] == clue.colour) ||
               (
                 range.last - clue.count > 0 &&
                 board_view[range.last - clue.count - 1] == clue.colour
@@ -172,6 +172,8 @@ class ClueSetView
   end
 
   def limit_range_overlap(ranges)
+    raise_if_no_placement(ranges)
+
     # Limit ranges so that they don't invalidly overlap.
     # Left to right
     (0...ranges.length - 1).each do |ranges_index|
@@ -186,6 +188,7 @@ class ClueSetView
         range = (min...right_ranges.first.last)
         if range.size < right_clue.count
           right_ranges.shift
+          raise_if_no_placement(ranges)
         else
           right_ranges[0] = range
         end
@@ -205,6 +208,7 @@ class ClueSetView
         range = (left_ranges.last.first...max)
         if range.size < left_clue.count
           left_ranges.pop
+          raise_if_no_placement(ranges)
         else
           left_ranges[-1] = range
         end
@@ -212,6 +216,13 @@ class ClueSetView
     end
 
     ranges
+  end
+
+  def raise_if_no_placement(ranges)
+    clue_index = ranges.find_index(&:empty?)
+    return if clue_index.nil?
+
+    raise "No valid placement for clue #{self[clue_index]} (index #{clue_index}) in #{self}"
   end
 
   def remove_invalid_ranges(board_view, all_ranges)
@@ -260,6 +271,8 @@ class ClueSetView
 
       result << combo
     end
+
+    raise "No valid combination of placements for clues #{self}" if result.empty?
 
     # Reassemble the combos into an array of arrays
     result.first.zip(*result[1..]).map(&:uniq)

@@ -30,6 +30,8 @@ class BoardView
   end
 
   def []=(index, value)
+    raise "Out of bounds #{index} in [#{@from}, #{@to})" unless in_bounds?(index)
+
     if @is_row
       @board[@index, @from + index] = value
     else
@@ -295,7 +297,11 @@ class BoardView
         sub_csv = csv.view(left_board_clue.to, left_clue_i + 1, right_clue_i)
         sub_csv.fill(sub_bv)
 
-        sub_bv.cap_identical_clues(sub_csv)
+        # A partially revealed match may extend into the sub-view, so only cap when both are complete.
+        if left_board_clue.count == csv[left_clue_i].count &&
+            right_board_clue.count == csv[right_clue_i].count
+          sub_bv.cap_identical_clues(sub_csv)
+        end
       end
     end
 

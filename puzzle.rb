@@ -20,7 +20,7 @@ class Puzzle
     counter = lambda do |clue_sets|
       counts = Hash.new(0)
       clue_sets.each { |cs| cs.each { |c| counts[c.colour] += c.count } }
-      raise "Clues cannot contain the default colour" if counts.key(BLANK)
+      raise "Clues cannot contain the default colour" if counts.key?(BLANK)
 
       counts
     end
@@ -64,7 +64,7 @@ class Puzzle
 
     solution_strings.map do |str|
       if str.length != @top_clue_sets.length
-        raise "Solution string length (#{str.length}) is different from the col count (#{@right_clue_sets.length})"
+        raise "Solution string length (#{str.length}) is different from the col count (#{@top_clue_sets.length})"
       end
 
       str.chars.map do |c|
@@ -122,7 +122,6 @@ class Puzzle
     # Like this one.
     fill_rows_by_clue_matching
 
-    binding.pry
     # iterate(until_clean: false) do |cs, bv|
     #   csv = cs.view
     #   ranges = csv.ranges(bv)

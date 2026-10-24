@@ -131,7 +131,10 @@ class Board
   end
 
   def solved?
-    @dirty_rows.all?(&:nil?) || @dirty_cols.all?(&:nil?)
+    return false unless @dirty_rows.all?(&:nil?) || @dirty_cols.all?(&:nil?)
+
+    # Lines can be marked solved while some of their blanks are still unknown.
+    @board.all? { |row| row.none?(&:nil?) }
   end
 
   def _update_dirty(is_row, index, value)
