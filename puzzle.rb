@@ -1,3 +1,6 @@
+# Raised when the board state is impossible, e.g. a cell is set to two different values.
+class Contradiction < StandardError; end
+
 class Puzzle
   BLANK = :" "
   UNKNOWN = ".".freeze
@@ -89,8 +92,8 @@ class Puzzle
     fn.call(@top_clue_sets, false)
   end
 
-  def iterate(until_clean:)
-    @board.dirtify
+  def iterate(until_clean:, dirtify: true)
+    @board.dirtify if dirtify
 
     loop do
       for_all_clue_sets do |cs, bv|
@@ -122,6 +125,9 @@ class Puzzle
     # Like this one.
     fill_rows_by_clue_matching
 
+    # Then try values in the cells that are left.
+    fill_by_probing unless solved?
+
     # iterate(until_clean: false) do |cs, bv|
     #   csv = cs.view
     #   ranges = csv.ranges(bv)
@@ -149,16 +155,64 @@ class Puzzle
     end
   end
 
-  def fill_rows_by_clue_matching
-    @board.dirtify
-
-    iterate(until_clean: true) do |cs, bv|
+  def fill_rows_by_clue_matching(dirtify: true)
+    iterate(until_clean: true, dirtify: dirtify) do |cs, bv|
       csv = cs.view
       bv.limit_edge_colours(csv)
       bv.fill_from_matches(csv)
       # @board.draw
       # binding.pry
     end
+  end
+
+  # For each unknown cell, tries each value it could take. A value that leads to a contradiction is
+  # ruled out, and a cell with one value left is set.
+  def fill_by_probing
+    loop do
+      progress = false
+      (0...@board.row_count).each do |row|
+        (0...@board.col_count).each do |col|
+          next unless @board[row, col].nil?
+
+          colours = @board.colour_limits(row, col).to_a
+          possible = [BLANK, *colours].select { |value| possible?(row, col, value) }
+          raise Contradiction, "No value is possible at (#{row},#{col})" if possible.empty?
+
+          if possible.one?
+            @board[row, col] = possible.first
+          elsif (possible - [BLANK]).length < colours.length
+            @board.limit_colours(row, col, possible - [BLANK])
+          else
+            next
+          end
+          progress = true
+          fill_rows_by_clue_matching(dirtify: false)
+        end
+      end
+      break unless progress
+    end
+  end
+
+  # Whether setting the cell to the value doesn't lead to a contradiction.
+  def possible?(row, col, value)
+    board_state = @board.snapshot
+    clue_solutions = all_clues.map(&:solution)
+    @board.without_solution_check do
+      @board[row, col] = value
+      fill_rows_by_clue_matching(dirtify: false)
+    end
+    true
+  rescue Contradiction
+    false
+  rescue StandardError
+    true # Inconclusive, so the value can't be ruled out.
+  ensure
+    @board.restore(board_state)
+    all_clues.zip(clue_solutions) { |clue, solution| clue.solve(solution) }
+  end
+
+  def all_clues
+    (@top_clue_sets + @left_clue_sets).flat_map(&:to_a)
   end
 
   def fill_rows_by_clue_matching_bfi

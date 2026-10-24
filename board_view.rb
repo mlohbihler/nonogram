@@ -160,7 +160,7 @@ class BoardView
         if self[to] == Puzzle::BLANK
           remaining = clue.count
         elsif !self[to].nil? && self[to] != clue.colour
-          raise "Unable to find a place to fit the clue"
+          raise Contradiction, "Unable to find a place to fit the clue"
         else
           remaining -= 1
         end
@@ -175,7 +175,7 @@ class BoardView
         if self[from] == Puzzle::BLANK
           remaining = clue.count
         elsif !self[from].nil? && self[from] != clue.colour
-          raise "Unable to find a place to fit the clue"
+          raise Contradiction, "Unable to find a place to fit the clue"
         else
           remaining -= 1
         end

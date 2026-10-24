@@ -50,14 +50,14 @@ class Board
       @dirty_rows[row] = true
       @dirty_cols[col] = true
     elsif @board[row][col] != value
-      raise "Trying to set (#{row},#{col}) to '#{value}' when it is already '#{@board[row][col]}'"
+      raise Contradiction, "Trying to set (#{row},#{col}) to '#{value}' when it is already '#{@board[row][col]}'"
     end
     if @solution && @solution[row][col] != value
       raise "solution value to set #{value} does not match puzzle solution #{@solution[row][col]}"
     end
     unless value == Puzzle::BLANK || @colour_limits[row][col].nil? ||
         @colour_limits[row][col].include?(value)
-      raise "Trying to set (#{row},#{col}) to '#{value}' which is not in allowed colours '#{@colour_limits[row][col]}'"
+      raise Contradiction, "Trying to set (#{row},#{col}) to '#{value}' which is not in allowed colours '#{@colour_limits[row][col]}'"
     end
 
     @board[row][col] = value
@@ -75,7 +75,7 @@ class Board
     @colour_limits[row][col] = limits.dup if @colour_limits[row][col].nil?
 
     unless self[row, col].nil? || limits.include?(self[row, col])
-      raise <<~MSG
+      raise Contradiction, <<~MSG
         Limiting the colours of a solved cell (#{row},#{col}):
         present value '#{self[row, col]}', colour limits: #{limits}
       MSG
@@ -102,6 +102,23 @@ class Board
     return true if @colour_limits[row][col].nil?
 
     @colour_limits[row][col].include?(colour)
+  end
+
+  def snapshot
+    [@board.map(&:dup), @colour_limits.map { |row| row.map { _1&.dup } }, @dirty_rows.dup, @dirty_cols.dup]
+  end
+
+  def restore(state)
+    @board, @colour_limits, @dirty_rows, @dirty_cols = state
+  end
+
+  # Lets trial values that differ from the solution be set without raising.
+  def without_solution_check
+    solution = @solution
+    @solution = nil
+    yield
+  ensure
+    @solution = solution
   end
 
   def dirtify

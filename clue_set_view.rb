@@ -104,7 +104,7 @@ class ClueSetView
   # valid when the board view holds exactly the clues of this view, e.g. a whole row or column.
   def clip_ranges_to_placements(ranges, bv)
     placements = placement_ranges(bv)
-    raise "No valid placement for clues #{self} in '#{bv.to_s.tr(' ', '_')}'" if placements.nil?
+    raise Contradiction, "No valid placement for clues #{self} in '#{bv.to_s.tr(' ', '_')}'" if placements.nil?
 
     ranges = ranges.each_with_index.map do |clue_ranges, index|
       count = self[index].count
@@ -299,7 +299,7 @@ class ClueSetView
     clue_index = ranges.find_index(&:empty?)
     return if clue_index.nil?
 
-    raise "No valid placement for clue #{self[clue_index]} (index #{clue_index}) in #{self}"
+    raise Contradiction, "No valid placement for clue #{self[clue_index]} (index #{clue_index}) in #{self}"
   end
 
   def remove_invalid_ranges(board_view, all_ranges)
@@ -349,7 +349,7 @@ class ClueSetView
       result << combo
     end
 
-    raise "No valid combination of placements for clues #{self}" if result.empty?
+    raise Contradiction, "No valid combination of placements for clues #{self}" if result.empty?
 
     # Reassemble the combos into an array of arrays
     result.first.zip(*result[1..]).map(&:uniq)
