@@ -15,12 +15,13 @@ start = Time.now.utc
 # puzzle = Puzzle.from_file("ladybug.20x20")
 # puzzle = Puzzle.from_file("pumpkins.45x35")
 # puzzle = Puzzle.from_file("hare.30x35")
+puzzle = Puzzle.from_file("paris.80x80")
 # puzzle = Puzzle.from_file("online_nonograms_com/17465")
 # puzzle = Puzzle.from_file("online_nonograms_com/19268")
 # puzzle = Puzzle.from_file("online_nonograms_com/19262")
 # puzzle = Puzzle.from_file("online_nonograms_com/19267")
 # puzzle = Puzzle.from_file("online_nonograms_com/19259")
-puzzle = Puzzle.from_file("online_nonograms_com/16624")
+# puzzle = Puzzle.from_file("online_nonograms_com/16624")
 
 puzzle.solve
 # puzzle.draw(rotate: false)

@@ -197,6 +197,7 @@ class BoardView
   def fill_from_ranges(csv)
     ranges = csv.ranges(self)
     ranges = csv.limit_ranges_using_matches(ranges, self, csv.match_recursive(self))
+    ranges = csv.clip_ranges_to_placements(ranges, self)
 
     # Fill any singular clue range with the clue colour.
     ranges.each_with_index do |clue_ranges, index|
@@ -219,6 +220,62 @@ class BoardView
       range = range_enum.next_or_nil if range && i >= range.last
       # binding.pry if (range.nil? || i < range.first) && self[i].nil?
       self[i] = Puzzle::BLANK if (range.nil? || i < range.first) && self[i].nil?
+    end
+
+    fill_from_run_candidates(csv, ranges)
+  end
+
+  # Uses every clue that could own a run of solved cells to extend and cap the run, even when the
+  # run can't be matched to a single clue.
+  def fill_from_run_candidates(csv, ranges)
+    to_clues.each do |run|
+      next if run.colour == Puzzle::BLANK
+
+      colour = run.colour
+
+      # The run's clue can't extend past cells that can't be its colour.
+      left = run.solution
+      left -= 1 while left > 0 && can_be?(left - 1, colour)
+      right = run.to
+      right += 1 while right < length && can_be?(right, colour)
+
+      # The earliest and latest start of each candidate clue, as [from, to, count].
+      spans = csv.each_with_index.flat_map do |clue, clue_index|
+        next [] unless clue.colour == colour && clue.count >= run.count
+
+        ranges[clue_index].filter_map do |range|
+          next unless range.first <= run.solution && range.last >= run.to
+
+          from = [left, run.to - clue.count, range.first].max
+          to = [run.solution, right - clue.count, range.last - clue.count].min
+          [from, to, clue.count] if from <= to
+        end
+      end
+      next if spans.empty?
+
+      # Fill the cells that every placement covers.
+      fill(spans.map { _2 }.max, spans.map { _1 + _3 }.min, colour)
+
+      # Cap the ends that no placement extends past.
+      cap(run.solution - 1, colour) if run.solution > 0 && spans.all? { |from, _, _| from == run.solution }
+      cap(run.to, colour) if run.to < length && spans.all? { |_, to, count| to + count == run.to }
+    end
+  end
+
+  def can_be?(index, colour)
+    self[index] == colour || (self[index].nil? && colour_limits_include?(index, colour))
+  end
+
+  # Marks a cell as not being the given colour.
+  def cap(index, colour)
+    return unless self[index].nil?
+
+    limits = colour_limits(index)
+    remaining = limits.nil? ? Set.new : limits - [colour]
+    if remaining.empty?
+      self[index] = Puzzle::BLANK
+    else
+      limit_colours(index, remaining)
     end
   end
 

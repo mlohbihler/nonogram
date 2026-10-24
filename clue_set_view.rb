@@ -100,6 +100,83 @@ class ClueSetView
     ranges
   end
 
+  # Clips ranges to the cells each clue covers in some valid placement of all of the clues. Only
+  # valid when the board view holds exactly the clues of this view, e.g. a whole row or column.
+  def clip_ranges_to_placements(ranges, bv)
+    placements = placement_ranges(bv)
+    raise "No valid placement for clues #{self} in '#{bv.to_s.tr(' ', '_')}'" if placements.nil?
+
+    ranges = ranges.each_with_index.map do |clue_ranges, index|
+      count = self[index].count
+      clue_ranges.product(placements[index]).filter_map do |range, placement|
+        range &= placement
+        range if range.size >= count
+      end
+    end
+    raise_if_no_placement(ranges)
+    ranges
+  end
+
+  # The cells each clue covers over every valid placement of all of the clues, as coalesced ranges
+  # per clue, or nil if there is no valid placement. A placement is valid when its clues fit the
+  # cells and colour limits, and it covers every solved coloured cell.
+  #
+  # feasible[i][j] is whether clues j onward can be placed in cells i onward. Walking forward from
+  # (0, 0) through only feasible states visits exactly the starts that some valid placement uses.
+  def placement_ranges(bv)
+    n = bv.length
+    can_blank = (0...n).map { bv[_1].nil? || bv[_1] == Puzzle::BLANK }
+
+    # misfits[colour][i] is the number of cells before i that can't be the colour.
+    misfits = colours.to_h do |colour|
+      [colour, (0...n).reduce([0]) { |counts, i| counts << counts.last + (bv.can_be?(i, colour) ? 0 : 1) }]
+    end
+
+    # The state after placing clue j at cell i, or nil if it doesn't fit.
+    place = lambda do |i, j|
+      return nil if j == length
+
+      clue = self[j]
+      after = i + clue.count
+      return nil if after > n || misfits[clue.colour][after] != misfits[clue.colour][i]
+      # Consecutive clues of the same colour need a blank between them.
+      return [after, j + 1] unless j + 1 < length && self[j + 1].colour == clue.colour
+      return nil unless after < n && can_blank[after]
+
+      [after + 1, j + 1]
+    end
+
+    feasible = Array.new(n + 2) { Array.new(length + 1, false) }
+    feasible[n][length] = true
+    (n - 1).downto(0) do |i|
+      (0..length).each do |j|
+        nxt = place.call(i, j)
+        feasible[i][j] = (can_blank[i] && feasible[i + 1][j]) || (!nxt.nil? && feasible[nxt[0]][nxt[1]])
+      end
+    end
+    return nil unless feasible[0][0]
+
+    starts = Array.new(length) { [] }
+    reached = Array.new(n + 1) { Array.new(length + 1, false) }
+    reached[0][0] = true
+    (0...n).each do |i|
+      (0..length).each do |j|
+        next unless reached[i][j]
+
+        reached[i + 1][j] = true if can_blank[i] && feasible[i + 1][j]
+        nxt = place.call(i, j)
+        next unless nxt && feasible[nxt[0]][nxt[1]]
+
+        reached[nxt[0]][nxt[1]] = true
+        starts[j] << i
+      end
+    end
+
+    starts.each_with_index.map do |clue_starts, j|
+      self.class.coalesce_ranges(clue_starts.map { (_1..._1 + self[j].count) })
+    end
+  end
+
   def colours
     Set.new(map(&:colour).uniq)
   end
@@ -228,7 +305,7 @@ class ClueSetView
   def remove_invalid_ranges(board_view, all_ranges)
     # Need to be careful with this method as it can have a large runtime complexity
     combo_count = all_ranges.map(&:length).reduce(&:*)
-    return all_ranges if combo_count > 1000
+    return all_ranges if combo_count > 10_000
 
     # Enumerate the combinations of ranges and eliminate those where:
     # - it leaves orphaned solutions
